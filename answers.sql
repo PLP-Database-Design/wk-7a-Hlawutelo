@@ -1,71 +1,46 @@
--- Question 1 Achieving 1NF (First Normal Form) 🛠️
-
--- Create the original ProductDetail table
-CREATE TABLE ProductDetail (
-    OrderID INT,
-    CustomerName VARCHAR(255),
-    Products VARCHAR(255)
-);
-
--- Insert sample data into the ProductDetail table
-INSERT INTO ProductDetail (OrderID, CustomerName, Products) VALUES 
-(101, 'John Doe', 'Laptop, Mouse'),
-(102, 'Jane Smith', 'Tablet, Keyboard, Mouse'),
+INSERT INTO ProductDetail(OrderID, CustomerName, Products)
+VALUES
+(101, 'John Doe', 'Laptop'),
+(101, 'John Doe', 'Mouse'),
+(102, 'Jane Smith', 'Tablet'),
+(102, 'Jane Smith', 'Keyboard'),
+(102, 'Jane Smith', 'Mouse'),
 (103, 'Emily Clark', 'Phone');
 
--- Transforming the table into 1NF
-SELECT 
-    OrderID,
-    CustomerName,
-    TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(Products, ',', n.n), ',', -1)) AS Product
-FROM 
-    ProductDetail
-JOIN 
-    (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6) n
-ON 
-    CHAR_LENGTH(Products) - CHAR_LENGTH(REPLACE(Products, ',', '')) >= n.n - 1
-ORDER BY 
-    OrderID;
+--  Question 2: Achieve Second Normal Form (2NF)
 
--- Question 2 Achieving 2NF (Second Normal Form) 🧩
+-- Drop tables if they exist
+DROP TABLE IF EXISTS Product;
+DROP TABLE IF EXISTS Orders;
 
--- Create the original OrderDetails table
-CREATE TABLE OrderDetails (
-    OrderID INT,
-    CustomerName VARCHAR(255),
-    Product VARCHAR(255),
-    Quantity INT
-);
-
--- Insert sample data into the OrderDetails table
-INSERT INTO OrderDetails (OrderID, CustomerName, Product, Quantity) VALUES 
-(101, 'John Doe', 'Laptop', 2),
-(101, 'John Doe', 'Mouse', 1),
-(102, 'Jane Smith', 'Tablet', 3),
-(102, 'Jane Smith', 'Keyboard', 1),
-(102, 'Jane Smith', 'Mouse', 2),
-(103, 'Emily Clark', 'Phone', 1);
-
--- Creating the Customer table to separate partial dependencies
-
-CREATE TABLE Customer (
+-- Create Orders table (removes partial dependency)
+CREATE TABLE Orders (
     OrderID INT PRIMARY KEY,
-    CustomerName VARCHAR(255)
+    CustomerName VARCHAR(100)
 );
 
--- Populate the Customer table with distinct order and customer pairs
-INSERT INTO Customer (OrderID, CustomerName)
-SELECT DISTINCT OrderID, CustomerName FROM OrderDetails;
+-- Insert unique OrderID and CustomerName
+INSERT INTO Orders (OrderID, CustomerName)
+VALUES
+(101, 'John Doe'),
+(102, 'Jane Smith'),
+(103, 'Emily Clark');
 
--- Creating the OrderProducts table to hold product details without redundancy
-CREATE TABLE OrderProducts (
+-- Create Product table (fully dependent on OrderID + Product)
+CREATE TABLE Product (
     OrderID INT,
-    Product VARCHAR(255),
+    Product VARCHAR(100),
     Quantity INT,
     PRIMARY KEY (OrderID, Product),
-    FOREIGN KEY (OrderID) REFERENCES Customer(OrderID)
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
 );
 
--- Populate the OrderProducts table with order details
-INSERT INTO OrderProducts (OrderID, Product, Quantity)
-SELECT OrderID, Product, Quantity FROM OrderDetails;
+-- Insert products with quantities per order
+INSERT INTO Product (OrderID, Product, Quantity)
+VALUES
+(101, 'Laptop', 2),
+(101, 'Mouse', 1),
+(102, 'Tablet', 3),
+(102, 'Keyboard', 1),
+(102, 'Mouse', 2),
+(103, 'Phone', 1);
